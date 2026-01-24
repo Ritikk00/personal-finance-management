@@ -9,7 +9,17 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors());
+// --- CORS updated with your live frontend URL ---
+app.use(cors({
+  origin: [
+    'https://personal-finance-frontend-vs0g.onrender.com', // Aapka Live URL
+    'http://localhost:5173',                              // Local development ke liye
+    'http://localhost:3000'                               // Agar koi aur port use ho raha ho
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -36,3 +46,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
