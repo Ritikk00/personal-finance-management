@@ -14,7 +14,6 @@ router.post(
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('confirmPassword').notEmpty().withMessage('Confirm password is required'),
   ],
-  handleErrors,
   authController.register
 );
 
@@ -24,7 +23,6 @@ router.post(
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required'),
   ],
-  handleErrors,
   authController.login
 );
 

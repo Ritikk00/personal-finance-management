@@ -4,9 +4,10 @@ const { validationResult } = require('express-validator');
 
 exports.register = async (req, res) => {
   try {
+    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ message: errors.array()[0].msg, errors: errors.array() });
     }
 
     const { fullName, email, password, confirmPassword } = req.body;
@@ -44,6 +45,7 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
