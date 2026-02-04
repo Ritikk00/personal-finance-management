@@ -102,16 +102,63 @@ exports.updateProfile = async (req, res) => {
   try {
     const { fullName, currency, categories, notificationPreferences } = req.body;
 
+    // Validation
+    if (!fullName || fullName.trim().length === 0) {
+      return res.status(400).json({ message: 'Full name is required' });
+    }
+
+    if (fullName.length > 100) {
+      return res.status(400).json({ message: 'Full name must be less than 100 characters' });
+    }
+
+    // Validate currency if provided
+    const validCurrencies = ['USD', 'EUR', 'GBP', 'INR'];
+    if (currency && !validCurrencies.includes(currency)) {
+      return res.status(400).json({ message: 'Invalid currency' });
+    }
+
+    // Validate categories
+    if (categories && (!Array.isArray(categories) || categories.length === 0)) {
+      return res.status(400).json({ message: 'Categories must be a non-empty array' });
+    }
+
+    if (categories && categories.some(cat => typeof cat !== 'string' || cat.trim().length === 0)) {
+      return res.status(400).json({ message: 'All categories must be non-empty strings' });
+    }
+
+    // Validate notification preferences
+    if (notificationPreferences) {
+      if (typeof notificationPreferences !== 'object') {
+        return res.status(400).json({ message: 'Notification preferences must be an object' });
+      }
+
+      if (notificationPreferences.emailNotifications !== undefined && typeof notificationPreferences.emailNotifications !== 'boolean') {
+        return res.status(400).json({ message: 'emailNotifications must be a boolean' });
+      }
+
+      if (notificationPreferences.budgetAlerts !== undefined && typeof notificationPreferences.budgetAlerts !== 'boolean') {
+        return res.status(400).json({ message: 'budgetAlerts must be a boolean' });
+      }
+
+      if (notificationPreferences.goalReminders !== undefined && typeof notificationPreferences.goalReminders !== 'boolean') {
+        return res.status(400).json({ message: 'goalReminders must be a boolean' });
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user.userId,
       {
-        fullName,
-        currency,
-        categories,
-        notificationPreferences,
+        fullName: fullName.trim(),
+        currency: currency || 'USD',
+        categories: categories || ['Groceries', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Other'],
+        notificationPreferences: notificationPreferences || {
+          emailNotifications: true,
+          budgetAlerts: true,
+          goalReminders: true,
+        },
         updatedAt: Date.now(),
       },
-      { new: true }
+      { new: true, runValidators: true }
     ).select('-password');
 
     res.json({ message: 'Profile updated successfully', user });

@@ -10,6 +10,7 @@ router.get('/progress', auth, goalController.getGoalProgress);
 router.get('/:id', auth, goalController.getGoalById);
 router.put('/:id', auth, goalController.updateGoal);
 router.put('/:id/progress', auth, goalController.updateGoalProgress);
+router.put('/:id/add-funds', auth, goalController.addFundsToGoal);
 router.delete('/:id', auth, goalController.deleteGoal);
 
 module.exports = router;

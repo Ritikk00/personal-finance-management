@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Alert, LoadingSpinner, Modal } from '../components/Common';
-import { createGoal, getGoals, updateGoal, deleteGoal } from '../utils/api';
+import { createGoal, getGoals, updateGoal, deleteGoal, addFundsToGoal } from '../utils/api';
 
 export const GoalPage = () => {
   const [goals, setGoals] = useState([]);
@@ -9,6 +9,9 @@ export const GoalPage = () => {
   const [success, setSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showFundsModal, setShowFundsModal] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState(null);
+  const [fundAmount, setFundAmount] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -69,6 +72,23 @@ export const GoalPage = () => {
       } catch (err) {
         setError('Failed to delete goal');
       }
+    }
+  };
+
+  const handleAddFunds = async () => {
+    try {
+      if (!fundAmount || fundAmount <= 0) {
+        setError('Please enter a valid amount');
+        return;
+      }
+      await addFundsToGoal(selectedGoalId, { amount: parseFloat(fundAmount) });
+      setSuccess('Funds added to goal successfully');
+      setFundAmount('');
+      setShowFundsModal(false);
+      setSelectedGoalId(null);
+      fetchGoals();
+    } catch (err) {
+      setError('Failed to add funds to goal');
     }
   };
 
@@ -133,6 +153,25 @@ export const GoalPage = () => {
         </form>
       </Modal>
 
+      <Modal isOpen={showFundsModal} onClose={() => { setShowFundsModal(false); setFundAmount(''); }} title="Add Funds to Goal">
+        <div className="space-y-4">
+          <Input
+            label="Amount to Add"
+            type="number"
+            value={fundAmount}
+            onChange={(e) => setFundAmount(e.target.value)}
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+            required
+          />
+          <div className="flex gap-2">
+            <Button onClick={handleAddFunds} className="flex-1">Add Funds</Button>
+            <Button onClick={() => { setShowFundsModal(false); setFundAmount(''); }} variant="secondary" className="flex-1">Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
       <div className="grid gap-4">
         {goals.map((goal) => {
           const progress = (goal.currentAmount / goal.targetAmount) * 100;
@@ -168,6 +207,16 @@ export const GoalPage = () => {
                   </div>
                 </div>
                 <div className="space-x-2 ml-4">
+                  <Button
+                    onClick={() => {
+                      setSelectedGoalId(goal._id);
+                      setShowFundsModal(true);
+                    }}
+                    variant="primary"
+                    className="py-1 px-3 text-sm"
+                  >
+                    Add Funds
+                  </Button>
                   <Button
                     onClick={() => {
                       setFormData({

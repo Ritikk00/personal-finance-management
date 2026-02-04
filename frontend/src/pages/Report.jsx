@@ -17,7 +17,7 @@ export const ReportPage = () => {
 
   useEffect(() => {
     fetchReportData();
-  }, []);
+  }, [startDate, endDate]);
 
   const fetchReportData = async () => {
     setLoading(true);
@@ -28,7 +28,9 @@ export const ReportPage = () => {
       ]);
       setExpenseStats(statsRes.data);
       setSummary(summaryRes.data);
+      setError('');
     } catch (err) {
+      console.error('Report fetch error:', err);
       setError('Failed to load report data');
     } finally {
       setLoading(false);
@@ -107,12 +109,15 @@ export const ReportPage = () => {
 
   if (loading) return <LoadingSpinner />;
 
+  const hasCategoryData = expenseStats && expenseStats.byCategory && Object.keys(expenseStats.byCategory).length > 0;
+  const hasPaymentData = expenseStats && expenseStats.byPaymentMethod && Object.keys(expenseStats.byPaymentMethod).length > 0;
+
   const categoryChartData = {
-    labels: Object.keys(expenseStats?.byCategory || {}),
+    labels: hasCategoryData ? Object.keys(expenseStats.byCategory) : ['No Data'],
     datasets: [
       {
         label: 'Expenses by Category',
-        data: Object.values(expenseStats?.byCategory || {}),
+        data: hasCategoryData ? Object.values(expenseStats.byCategory) : [0],
         backgroundColor: [
           '#3B82F6',
           '#10B981',
@@ -121,19 +126,33 @@ export const ReportPage = () => {
           '#8B5CF6',
           '#EC4899',
         ],
+        borderColor: '#fff',
+        borderWidth: 2,
       },
     ],
   };
 
   const paymentMethodChartData = {
-    labels: Object.keys(expenseStats?.byPaymentMethod || {}),
+    labels: hasPaymentData ? Object.keys(expenseStats.byPaymentMethod) : ['No Data'],
     datasets: [
       {
         label: 'Expenses by Payment Method',
-        data: Object.values(expenseStats?.byPaymentMethod || {}),
+        data: hasPaymentData ? Object.values(expenseStats.byPaymentMethod) : [0],
         backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'],
+        borderColor: '#fff',
+        borderWidth: 2,
       },
     ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      },
+    },
   };
 
   return (
@@ -146,25 +165,25 @@ export const ReportPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <p className="text-gray-600 text-sm">Total Income</p>
-          <p className="text-3xl font-bold text-green-600">${summary?.totalIncome.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-green-600">${summary?.periodTotalIncome?.toFixed(2) || '0.00'}</p>
         </Card>
         <Card>
           <p className="text-gray-600 text-sm">Total Expenses</p>
-          <p className="text-3xl font-bold text-red-600">${summary?.totalExpenses.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-red-600">${summary?.periodTotalExpenses?.toFixed(2) || '0.00'}</p>
         </Card>
         <Card>
           <p className="text-gray-600 text-sm">Balance</p>
-          <p className={`text-3xl font-bold ${summary?.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ${summary?.balance.toFixed(2)}
+          <p className={`text-3xl font-bold ${(summary?.periodBalance || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ${summary?.periodBalance?.toFixed(2) || '0.00'}
           </p>
         </Card>
         <Card>
           <p className="text-gray-600 text-sm">Savings Rate</p>
-          <p className="text-3xl font-bold text-blue-600">{summary?.savingsRate}%</p>
+          <p className="text-3xl font-bold text-blue-600">{summary?.savingsRate || 0}%</p>
         </Card>
       </div>
 
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-4 mb-6 flex-wrap">
         <input
           type="date"
           value={startDate}
@@ -177,7 +196,6 @@ export const ReportPage = () => {
           onChange={(e) => setEndDate(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg"
         />
-        <Button onClick={fetchReportData} variant="primary">Filter</Button>
         <Button onClick={exportToCSV} variant="secondary">Export CSV</Button>
         <Button onClick={exportToPDF} variant="secondary">Export PDF</Button>
       </div>
@@ -185,11 +203,27 @@ export const ReportPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <h3 className="font-semibold text-lg mb-4">Expenses by Category</h3>
-          <Pie data={categoryChartData} />
+          {hasCategoryData ? (
+            <div style={{ position: 'relative', height: '300px' }}>
+              <Pie data={categoryChartData} options={chartOptions} />
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-gray-500">
+              <p>No expense data available for the selected period</p>
+            </div>
+          )}
         </Card>
         <Card>
           <h3 className="font-semibold text-lg mb-4">Expenses by Payment Method</h3>
-          <Pie data={paymentMethodChartData} />
+          {hasPaymentData ? (
+            <div style={{ position: 'relative', height: '300px' }}>
+              <Pie data={paymentMethodChartData} options={chartOptions} />
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-gray-500">
+              <p>No expense data available for the selected period</p>
+            </div>
+          )}
         </Card>
       </div>
     </div>

@@ -36,9 +36,10 @@ export const DashboardPage = () => {
       setStats(expenseRes.data);
       setIncomeStats(incomeRes.data);
       setSummary(summaryRes.data);
-      setBudgetStatus(budgetRes.data);
+      setBudgetStatus(budgetRes.data || []);
       setGoals(goalsRes.data.goals || []);
     } catch (err) {
+      console.error('Dashboard fetch error:', err);
       setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -47,26 +48,43 @@ export const DashboardPage = () => {
 
   if (loading) return <LoadingSpinner />;
 
+  const hasExpenseData = stats && stats.byCategory && Object.keys(stats.byCategory).length > 0;
+  const hasIncomeData = incomeStats && incomeStats.bySource && Object.keys(incomeStats.bySource).length > 0;
+
   const expenseCategoryData = {
-    labels: Object.keys(stats?.byCategory || {}),
+    labels: hasExpenseData ? Object.keys(stats.byCategory) : ['No Data'],
     datasets: [
       {
         label: 'Expenses by Category',
-        data: Object.values(stats?.byCategory || {}),
+        data: hasExpenseData ? Object.values(stats.byCategory) : [0],
         backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'],
+        borderColor: '#fff',
+        borderWidth: 2,
       },
     ],
   };
 
   const incomeCategoryData = {
-    labels: Object.keys(incomeStats?.bySource || {}),
+    labels: hasIncomeData ? Object.keys(incomeStats.bySource) : ['No Data'],
     datasets: [
       {
         label: 'Income by Source',
-        data: Object.values(incomeStats?.bySource || {}),
+        data: hasIncomeData ? Object.values(incomeStats.bySource) : [0],
         backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'],
+        borderColor: '#fff',
+        borderWidth: 2,
       },
     ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      },
+    },
   };
 
   const alertBudgets = budgetStatus.filter((b) => b.status !== 'Normal');
@@ -81,21 +99,22 @@ export const DashboardPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <p className="text-gray-600 text-sm">Total Income (30 days)</p>
-          <p className="text-3xl font-bold text-green-600">${summary?.totalIncome.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-green-600">${summary?.periodTotalIncome?.toFixed(2) || '0.00'}</p>
         </Card>
         <Card>
           <p className="text-gray-600 text-sm">Total Expenses (30 days)</p>
-          <p className="text-3xl font-bold text-red-600">${summary?.totalExpenses.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-red-600">${summary?.periodTotalExpenses?.toFixed(2) || '0.00'}</p>
         </Card>
         <Card>
-          <p className="text-gray-600 text-sm">Balance</p>
-          <p className={`text-3xl font-bold ${summary?.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ${summary?.balance.toFixed(2)}
+          <p className="text-gray-600 text-sm">Available Balance</p>
+          <p className={`text-3xl font-bold ${(summary?.overallBalance || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ${summary?.overallBalance?.toFixed(2) || '0.00'}
           </p>
+          <p className="text-xs text-gray-500 mt-1">Total Income - Total Expenses</p>
         </Card>
         <Card>
           <p className="text-gray-600 text-sm">Savings Rate</p>
-          <p className="text-3xl font-bold text-blue-600">{summary?.savingsRate}%</p>
+          <p className="text-3xl font-bold text-blue-600">{summary?.savingsRate || 0}%</p>
         </Card>
       </div>
 
@@ -103,11 +122,27 @@ export const DashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <h3 className="font-semibold text-lg mb-4">Expenses by Category (30 days)</h3>
-          <Pie data={expenseCategoryData} />
+          {hasExpenseData ? (
+            <div style={{ position: 'relative', height: '300px' }}>
+              <Pie data={expenseCategoryData} options={chartOptions} />
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-gray-500">
+              <p>No expense data available for the selected period</p>
+            </div>
+          )}
         </Card>
         <Card>
           <h3 className="font-semibold text-lg mb-4">Income by Source (30 days)</h3>
-          <Pie data={incomeCategoryData} />
+          {hasIncomeData ? (
+            <div style={{ position: 'relative', height: '300px' }}>
+              <Pie data={incomeCategoryData} options={chartOptions} />
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-gray-500">
+              <p>No income data available for the selected period</p>
+            </div>
+          )}
         </Card>
       </div>
 
@@ -139,7 +174,7 @@ export const DashboardPage = () => {
                 <div key={goal._id} className="border-b pb-4 last:border-b-0">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium text-gray-800">{goal.title}</span>
-                    <span className="text-sm text-gray-600">${goal.currentAmount} / ${goal.targetAmount}</span>
+                    <span className="text-sm text-gray-600">${goal.currentAmount.toFixed(2)} / ${goal.targetAmount.toFixed(2)}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${Math.min(progress, 100)}%` }}></div>

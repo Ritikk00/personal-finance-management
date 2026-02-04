@@ -71,11 +71,12 @@ exports.getBudgetById = async (req, res) => {
 
 exports.updateBudget = async (req, res) => {
   try {
-    const { amount, period, startDate, endDate, alertThreshold, isActive } = req.body;
+    const { category, amount, period, startDate, endDate, alertThreshold, isActive } = req.body;
 
     const budget = await Budget.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.userId },
       {
+        category,
         amount,
         period,
         startDate: new Date(startDate),

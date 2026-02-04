@@ -68,6 +68,9 @@ export const updateGoal = (id, data) =>
 export const updateGoalProgress = (id, data) =>
   axios.put(`${API_URL}/goals/${id}/progress`, data, { headers: getAuthHeader() });
 
+export const addFundsToGoal = (id, data) =>
+  axios.put(`${API_URL}/goals/${id}/add-funds`, data, { headers: getAuthHeader() });
+
 export const deleteGoal = (id) =>
   axios.delete(`${API_URL}/goals/${id}`, { headers: getAuthHeader() });
 

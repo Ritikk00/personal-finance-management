@@ -2,11 +2,23 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const connectDB = require('./config/database');
+const { processRecurringIncome, processRecurringExpenses } = require('./utils/recurringProcessor');
 
 const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// Schedule recurring income/expense processing
+// Run every day at midnight
+setInterval(async () => {
+  await processRecurringIncome();
+  await processRecurringExpenses();
+}, 24 * 60 * 60 * 1000); // Daily
+
+// Run once on startup
+processRecurringIncome();
+processRecurringExpenses();
 
 // Middleware
 // --- CORS updated with your live frontend URL ---

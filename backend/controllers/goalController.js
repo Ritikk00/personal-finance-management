@@ -172,3 +172,34 @@ exports.getGoalProgress = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+exports.addFundsToGoal = async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: 'Amount must be greater than 0' });
+    }
+
+    const goal = await Goal.findOne({
+      _id: req.params.id,
+      userId: req.user.userId,
+    });
+
+    if (!goal) {
+      return res.status(404).json({ message: 'Goal not found' });
+    }
+
+    goal.currentAmount += parseFloat(amount);
+
+    if (goal.currentAmount >= goal.targetAmount) {
+      goal.status = 'Achieved';
+    }
+
+    await goal.save();
+
+    res.json({ message: 'Funds added to goal successfully', goal });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

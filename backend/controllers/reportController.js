@@ -399,6 +399,15 @@ exports.getFinancialSummary = async (req, res) => {
     let expenseQuery = { userId: req.user.userId };
     let incomeQuery = { userId: req.user.userId };
 
+    // Get all-time income and expenses for calculating balance
+    const allTimeExpenses = await Expense.find({ userId: req.user.userId });
+    const allTimeIncomes = await Income.find({ userId: req.user.userId });
+
+    const allTimeTotalExpenses = allTimeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const allTimeTotalIncome = allTimeIncomes.reduce((sum, inc) => sum + inc.amount, 0);
+    const overallBalance = allTimeTotalIncome - allTimeTotalExpenses;
+
+    // Get period-specific data for display
     if (startDate || endDate) {
       expenseQuery.date = {};
       incomeQuery.date = {};
@@ -412,18 +421,24 @@ exports.getFinancialSummary = async (req, res) => {
       }
     }
 
-    const expenses = await Expense.find(expenseQuery);
-    const incomes = await Income.find(incomeQuery);
+    const periodExpenses = await Expense.find(expenseQuery);
+    const periodIncomes = await Income.find(incomeQuery);
 
-    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0);
-    const balance = totalIncome - totalExpenses;
+    const periodTotalExpenses = periodExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const periodTotalIncome = periodIncomes.reduce((sum, inc) => sum + inc.amount, 0);
+    const periodBalance = periodTotalIncome - periodTotalExpenses;
 
     res.json({
-      totalIncome,
-      totalExpenses,
-      balance,
-      savingsRate: totalIncome > 0 ? Math.round(((balance / totalIncome) * 100) * 100) / 100 : 0,
+      periodTotalIncome,
+      periodTotalExpenses,
+      periodBalance,
+      allTimeTotalIncome,
+      allTimeTotalExpenses,
+      overallBalance, // This is the remaining available balance
+      totalIncome: periodTotalIncome, // For backward compatibility
+      totalExpenses: periodTotalExpenses,
+      balance: overallBalance, // Send overall balance
+      savingsRate: periodTotalIncome > 0 ? Math.round(((periodBalance / periodTotalIncome) * 100) * 100) / 100 : 0,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
